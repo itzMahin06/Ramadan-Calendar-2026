@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>মাহে রমাদান-২০২৬</title>
+    <link href="https://fonts.maateen.me/solaiman-lipi/font.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d5c3e;
+            --accent-color: #ffcc00;
+            --bg-gradient: linear-gradient(135deg, #1a4a3a 0%, #0d2b21 100%);
+        }
+
+        body {
+            font-family: 'SolaimanLipi', sans-serif;
+            background: var(--bg-gradient);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        header {
+            margin-bottom: 30px;
+        }
+
+        h1 { font-size: 2.5rem; margin-bottom: 5px; color: var(--accent-color); }
+        .slogan { font-size: 1.1rem; opacity: 0.8; }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        select {
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background: white;
+            font-family: inherit;
+        }
+
+        /* Countdown Overlay */
+        #countdown-box {
+            display: none;
+            background: var(--accent-color);
+            color: #000;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            animation: fadeIn 0.5s;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        th {
+            background: var(--primary-color);
+            padding: 15px;
+            font-size: 1.1rem;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        tr:hover td { background: rgba(255, 255, 255, 0.1); }
+
+        .time-cell:hover {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            th, td { padding: 8px; font-size: 0.9rem; }
+            h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>মাহে রমাদান-২০২৬</h1>
+        <div class="slogan">ডেভেলপ: মাহিন।</div>
+    </header>
+
+    <div class="controls">
+        <label for="district">জেলা নির্বাচন করুন: </label>
+        <select id="district" onchange="fetchRamadanData()">
+            <option value="Mymensingh" selected>ময়মনসিংহ</option>
+            <option value="Jamalpur">জামালপুর</option>
+        </select>
+    </div>
+
+    <div id="countdown-box"></div>
+
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>রমাদান</th>
+                    <th>তারিখ</th>
+                    <th>সেহরি (শেষ সময়)</th>
+                    <th>ইফতার (শুরু)</th>
+                </tr>
+            </thead>
+            <tbody id="ramadan-table">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let countdownInterval;
+
+    async function fetchRamadanData() {
+        const district = document.getElementById('district').value;
+        const tableBody = document.getElementById('ramadan-table');
+        tableBody.innerHTML = "<tr><td colspan='4'>লোড হচ্ছে...</td></tr>";
+
+        try {
+            // API Call for Ramadan 2026 (Approx Feb/March 2026)
+            const response = await fetch(`https://api.aladhan.com/v1/calendarByCity/2026/2?city=${district}&country=Bangladesh&method=1&adjustment=1`);
+            const data = await response.json();
+            
+            renderTable(data.data);
+        } catch (error) {
+            tableBody.innerHTML = "<tr><td colspan='4'>তথ্য আনতে সমস্যা হয়েছে।</td></tr>";
+        }
+    }
+
+    function formatTime(time) {
+        let [hours, minutes] = time.split(':');
+        hours = parseInt(hours);
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `${hours}:${minutes} ${ampm}`;
+    }
+
+    function renderTable(days) {
+        const tableBody = document.getElementById('ramadan-table');
+        tableBody.innerHTML = "";
+
+        // রমজান শুরু হতে পারে ১৫ বা ১৬ ফেব্রুয়ারি থেকে, আমরা ফিল্টার করে শুধু রমজানের অংশ দেখাতে পারি 
+        // এখানে উদাহরনস্বরূপ ফেব্রুয়ারির ডাটা দেখানো হচ্ছে
+        days.forEach((day, index) => {
+            const row = document.createElement('tr');
+            
+            const seheriTime = day.timings.Fajr.split(' ')[0];
+            const iftarTime = day.timings.Maghrib.split(' ')[0];
+
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${day.date.readable}</td>
+                <td class="time-cell" onclick="startCountdown('${seheriTime}', 'সেহরি')">${formatTime(seheriTime)}</td>
+                <td class="time-cell" onclick="startCountdown('${iftarTime}', 'ইফতার')">${formatTime(iftarTime)}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    function startCountdown(targetTime, type) {
+        const countdownBox = document.getElementById('countdown-box');
+        clearInterval(countdownInterval);
+        
+        countdownBox.style.display = "block";
+
+        countdownInterval = setInterval(() => {
+            const now = new Date();
+            const [tHours, tMinutes] = targetTime.split(':');
+            
+            let target = new Date();
+            target.setHours(tHours, tMinutes, 0);
+
+            // যদি সময় পার হয়ে যায় তবে পরের দিনের জন্য সেট করবে
+            if (target < now) {
+                target.setDate(target.getDate() + 1);
+            }
+
+            const diff = target - now;
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+            countdownBox.innerHTML = `${type}-এর আর বাকি: ${h} ঘণ্টা ${m} মিনিট ${s} সেকেন্ড`;
+            
+            if (diff < 0) {
+                clearInterval(countdownInterval);
+                countdownBox.innerHTML = "সময় হয়েছে!";
+            }
+        }, 1000);
+    }
+
+    // Initial load
+    fetchRamadanData();
+</script>
+
+</body>
+</html>
