@@ -223,7 +223,7 @@ function formatTime(t){
     if(!t) return "";
     let [h, m] = t.split(":");
     h = parseInt(h);
-    let ampm = h >= 12 ? "পিএম" : "এএম";
+    let ampm = h >= 12 ? "" : "";
     h = h % 12 || 12;
     return `${toBangla(h)}:${toBangla(m)} ${ampm}`;
 }
