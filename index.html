@@ -5,15 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>মাহে রমাদান-২০২৬</title>
 <link href="https://fonts.maateen.me/solaiman-lipi/font.css" rel="stylesheet">
-<!-- Open Graph / Facebook -->
-<meta property="og:type" content="website">
-<meta property="og:url" content="ramadan26.maahin.my.id">
-<meta property="og:title" content="Ramadan 2026 Calendar">
-<meta property="og:description" content="Mymensingh Division: Jamalpur, Sherpur, Netrokona, Mymensingh; Ramadan Seheri and Iftar time.">
-<meta property="og:image" content="og.png">
-
-
-    
 <style>
 :root{
 --primary:#0d5c3e;
@@ -49,13 +40,82 @@ box-sizing: border-box;
 
 .container{max-width:1100px; margin:auto; padding:10px;}
 
-select{
-padding:8px 15px;
-border-radius:8px;
-border:none;
-margin:15px 0;
-font-family:inherit;
-cursor: pointer;
+/* বাটন ও সিলেক্ট এরিয়া */
+.action-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+}
+
+select {
+    padding:8px 15px;
+    border-radius:8px;
+    border:none;
+    font-family:inherit;
+    cursor: pointer;
+    background: white;
+}
+
+.prayer-btn {
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #000;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.prayer-btn:hover { background: #e6b800; }
+
+/* মডাল স্টাইল */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: #145c42;
+    margin: 15% auto;
+    padding: 20px;
+    border: 2px solid var(--accent);
+    width: 80%;
+    max-width: 400px;
+    border-radius: 15px;
+    text-align: center;
+    position: relative;
+}
+
+.close-btn {
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--accent);
+}
+
+.prayer-list {
+    text-align: left;
+    margin-top: 15px;
+}
+
+.prayer-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .cards{
@@ -121,22 +181,39 @@ border-radius: 4px;
 </div>
 
 <div class="container">
-<label>জেলা নির্বাচন করুন:</label>
-<select id="district" onchange="fetchRamadanData()">
-<option value="Mymensingh">ময়মনসিংহ</option>
-<option value="Jamalpur">জামালপুর</option>
-<option value="Sherpur">শেরপুর</option>
-<option value="Netrokona">নেত্রকোণা</option>
-</select>
+    <div class="action-bar">
+        <div>
+            <label>জেলা:</label>
+            <select id="district" onchange="fetchRamadanData()">
+                <option value="Mymensingh">ময়মনসিংহ</option>
+                <option value="Jamalpur">জামালপুর</option>
+                <option value="Sherpur">শেরপুর</option>
+                <option value="Netrokona">নেত্রকোণা</option>
+            </select>
+        </div>
+        <button class="prayer-btn" onclick="showPrayerTimes()">আজকের নামাজের সময়সূচি</button>
+    </div>
 
-<div class="cards" id="ramadan-cards"></div>
+    <div class="cards" id="ramadan-cards"></div>
+</div>
+
+<div id="prayerModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h3 style="color:var(--accent); margin-bottom: 5px;">নামাজের সময়সূচি</h3>
+        <p id="modal-district-name" style="margin: 0; font-size: 0.9rem;"></p>
+        <hr style="border: 0.5px solid rgba(255,255,255,0.2); margin: 15px 0;">
+        <div id="prayer-list" class="prayer-list"></div>
+        <p style="font-size: 0.7rem; margin-top: 15px; color: #ccc;">* মার্ক করা সময়গুলো ওয়াক্ত শুরুর সময় নির্দেশ করে।</p>
+    </div>
 </div>
 
 <script>
 let ramadanData=[];
+let fullMonthData = []; // সব ডেটা স্টোর করার জন্য
 let timer;
 
-const ordinalMap = ["", "১ম", "২য়", "৩য়", "৪র্থ", "৫ম", "৬ষ্ঠ", "৭ম", "৮ম", "৯ম", "১০ম", "১১শ", "১২শ", "১৩শ", "১৪শ", "১৫শ", "১৬শ", "১৭শ", "১৮শ", "১৯শ", "২০শ", "২১শ", "২২শ", "২৩শ", "২৪শ", "২৫শ", "২৬শ", "২৭শ", "২৮শ", "২৯শ", "৩০শ"];
+const ordinalMap = ["", "১ম", "২য়", "৩য়", "৪র্থ", "৫ম", "৬ষ্ঠ", "৭ম", "৮ম", "৯ম", "১০ম", "১১শ", "১২শ", "১৩শ", "১৪শ", "১৫শ", "১৬শ", "১৭শ", "১৮শ", "১৯শ", "২০শ", "২১শ", "২২শ", "২৩শ", "২৪শ", "২৫শ", "২৬শ", "২৭শ", "২৮শ", "২৯শ", "৩০শ"];
 
 function toBangla(num){
     return num.toString().padStart(2, '0').replace(/\d/g, d => "০১২৩৪৫৬৭৮৯"[d]);
@@ -159,13 +236,8 @@ function districtBangla(val){
 function formatDateBN(dateStr){
     const [d, m, y] = dateStr.split("-");
     const dateObj = new Date(y, m-1, d);
-    
-    // বার বের করা (যেমন: বৃহস্পতিবার)
     const weekday = dateObj.toLocaleDateString("bn-BD", {weekday:"long"});
-    // দিন এবং মাস বের করা (যেমন: ১৯ ফেব্রুয়ারি)
     const dayMonth = dateObj.toLocaleDateString("bn-BD", {day:"numeric", month:"long"});
-    
-    // বারের পরে কমা বসিয়ে রিটার্ন করা
     return `${weekday}, ${dayMonth}`;
 }
 
@@ -174,7 +246,7 @@ function updateHeader(){
     const date = now.toLocaleDateString("bn-BD", {weekday:"long", year:"numeric", month:"long", day:"numeric"});
     const time = now.toLocaleTimeString("bn-BD");
     const district = districtBangla(document.getElementById("district").value);
-    document.getElementById("header-info").innerHTML = `${date} <br> সময়: ${time} | জেলা: ${district}`;
+    document.getElementById("header-info").innerHTML = `${date} <br> সময়: ${time} | জেলা: ${district}`;
 }
 setInterval(updateHeader, 1000);
 
@@ -191,16 +263,58 @@ async function fetchRamadanData(){
         
         const dataFeb = await resFeb.json();
         const dataMar = await resMar.json();
-        const combinedData = [...dataFeb.data, ...dataMar.data];
+        fullMonthData = [...dataFeb.data, ...dataMar.data];
         
         const startDate = "19-02-2026";
-        const startIndex = combinedData.findIndex(d => d.date.gregorian.date === startDate);
+        const startIndex = fullMonthData.findIndex(d => d.date.gregorian.date === startDate);
         
-        ramadanData = startIndex !== -1 ? combinedData.slice(startIndex, startIndex + 30) : [];
+        ramadanData = startIndex !== -1 ? fullMonthData.slice(startIndex, startIndex + 30) : [];
 
         renderCards();
         startLiveUpdate();
     } catch (e) { container.innerHTML = "ডেটা লোড করতে ব্যর্থ!"; }
+}
+
+// নামাজের সময় দেখানোর ফাংশন
+function showPrayerTimes() {
+    const now = new Date();
+    const todayStr = ("0" + now.getDate()).slice(-2) + "-" + ("0" + (now.getMonth() + 1)).slice(-2) + "-" + now.getFullYear();
+    const todayData = fullMonthData.find(d => d.date.gregorian.date === todayStr);
+
+    if (todayData) {
+        const prayers = [
+            { name: "ফজর", time: todayData.timings.Fajr },
+            { name: "যোহর", time: todayData.timings.Dhuhr },
+            { name: "আসর", time: todayData.timings.Asr },
+            { name: "মাগরিব (ইফতার)", time: todayData.timings.Maghrib },
+            { name: "এশা", time: todayData.timings.Isha }
+        ];
+
+        let html = "";
+        prayers.forEach(p => {
+            html += `<div class="prayer-item">
+                        <span>* ${p.name}</span>
+                        <span style="color:var(--accent)">${formatTime(p.time.split(" ")[0])}</span>
+                    </div>`;
+        });
+
+        document.getElementById("modal-district-name").innerText = "জেলা: " + districtBangla(document.getElementById("district").value);
+        document.getElementById("prayer-list").innerHTML = html;
+        document.getElementById("prayerModal").style.display = "block";
+    } else {
+        alert("আজকের তথ্য পাওয়া যায়নি!");
+    }
+}
+
+function closeModal() {
+    document.getElementById("prayerModal").style.display = "none";
+}
+
+// বাইরের জায়গায় ক্লিক করলে মডাল বন্ধ হবে
+window.onclick = function(event) {
+    if (event.target == document.getElementById("prayerModal")) {
+        closeModal();
+    }
 }
 
 function renderCards(){
@@ -246,20 +360,17 @@ function startLiveUpdate(){
             const cardDate = new Date(y, m-1, d);
             const cardDateTime = cardDate.getTime();
 
-            // আজকের কার্ডের জন্য লজিক
             if (cardDateTime === todayNoTime) {
                 if(now < sehriTime){
                     el.innerHTML = `সেহরি বাকি:<br><span style="color:#fff">${getExactTimeStr(sehriTime - now)}</span>`;
                 } else if(now < iftarTime){
                     el.innerHTML = `<span style="color:#00ff88">সেহরি সম্পন্ন</span><br>ইফতার বাকি:<br><span style="color:#fff">${getExactTimeStr(iftarTime - now)}</span>`;
                 } else {
-                    // ইফতার হয়ে গেছে, এখন পরবর্তী দিনের সেহরির কাউন্টডাউন দেখাবে (যদি পরের দিনের ডেটা থাকে)
                     if(ramadanData[index+1]){
                         const nextDay = ramadanData[index+1];
                         const [nd, nm, ny] = nextDay.date.gregorian.date.split("-");
                         const [nsh, nsm] = nextDay.timings.Fajr.split(" ")[0].split(":");
                         const nextSehriTime = new Date(ny, nm-1, nd, nsh, nsm);
-                        
                         el.innerHTML = `<span style="color:#00ff88">ইফতার সম্পন্ন</span><br>পরবর্তী সেহরি বাকি:<br><span style="color:#fff">${getExactTimeStr(nextSehriTime - now)}</span>`;
                     } else {
                         el.innerHTML = `<span style="color:#00ff88">ইফতার সম্পন্ন</span>`;
@@ -280,7 +391,6 @@ function getExactTimeStr(ms){
     let h = Math.floor(totalSec / 3600);
     let m = Math.floor((totalSec % 3600) / 60);
     let s = totalSec % 60;
-    
     return `${toBangla(h)}ঘ:${toBangla(m)}মি:${toBangla(s)}সে`;
 }
 
